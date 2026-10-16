@@ -7,6 +7,8 @@ App de ejemplo (una pequeña biblioteca) para demostrar **estrategias de respald
 respaldos lógicos automatizados y cifrados, restauración verificada, política de retención y respaldos físicos
 incrementales nativos de PostgreSQL 17.
 
+🌐 **App en vivo:** https://pg-backup-guardian.onrender.com (plan gratuito: la primera carga tras inactividad tarda ~50 s)
+
 Proyecto del curso **Base de Datos II** — Escuela Profesional de Ingeniería de Sistemas, Universidad Privada de Tacna.
 Autores: **Adrian Fabricio Salas Acuña** y **Keyla Noelia Lopez Ojeda**.
 
@@ -30,7 +32,7 @@ Autores: **Adrian Fabricio Salas Acuña** y **Keyla Noelia Lopez Ojeda**.
 
 | Capa | Qué | Frecuencia | RPO |
 |---|---|---|---|
-| 1. PITR del proveedor | Historial WAL de Neon (restaurar a cualquier instante) | Continuo | segundos |
+| 1. PITR del proveedor | Historial WAL de Neon (ventana de 6 h en el plan gratuito) | Continuo | segundos |
 | 2. Lógico completo | `pg_dump -Fc` cifrado, fuera del proveedor (GitHub) | Diario 06:00 UTC | 24 h |
 | 3. Físico incremental | `pg_basebackup --incremental` + `pg_combinebackup` (demo local) | Bajo demanda | — |
 
