@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS loans (
 CREATE TABLE IF NOT EXISTS backup_log (
     id          SERIAL PRIMARY KEY,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    kind        TEXT        NOT NULL,              -- logical-full, physical-full, incremental...
+    kind        TEXT        NOT NULL,              -- logical-full, snapshot, ...
     status      TEXT        NOT NULL,              -- ok | failed
     file_name   TEXT,
     size_bytes  BIGINT,
@@ -29,6 +29,30 @@ CREATE TABLE IF NOT EXISTS backup_log (
     verified    BOOLEAN     NOT NULL DEFAULT false, -- ¿se probó la restauración?
     location    TEXT,                               -- dónde quedó guardado
     details     TEXT
+);
+
+-- Línea de tiempo del laboratorio de recuperación (respaldos, desastres, restauraciones).
+CREATE TABLE IF NOT EXISTS events (
+    id          SERIAL PRIMARY KEY,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    type        TEXT        NOT NULL,   -- snapshot | verify | disaster | restore | info
+    level       TEXT        NOT NULL DEFAULT 'info',  -- info | ok | warn | error
+    message     TEXT        NOT NULL
+);
+
+-- Puntos de restauración rápidos generados desde la app (CSV comprimidos en ZIP).
+-- Viven en un esquema aparte para que un desastre sobre "public" no los alcance.
+CREATE SCHEMA IF NOT EXISTS vault;
+CREATE TABLE IF NOT EXISTS vault.snapshots (
+    id           SERIAL PRIMARY KEY,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    label        TEXT,
+    size_bytes   INTEGER     NOT NULL,
+    sha256       TEXT        NOT NULL,
+    duration_ms  INTEGER     NOT NULL,
+    manifest     JSONB       NOT NULL,   -- columnas, filas y huella md5 por tabla
+    payload      BYTEA       NOT NULL,   -- ZIP con un CSV por tabla + manifest.json
+    verified_at  TIMESTAMPTZ
 );
 
 -- Datos de ejemplo solo si la tabla está vacía.

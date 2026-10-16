@@ -1,3 +1,6 @@
+from conftest import ADMIN
+
+
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200
@@ -14,7 +17,8 @@ def test_create_get_delete_book(client):
     assert r.status_code == 201
     book_id = r.json()["id"]
     assert client.get(f"/api/books/{book_id}").json()["title"] == "Respaldos 101"
-    assert client.delete(f"/api/books/{book_id}").status_code == 204
+    assert client.delete(f"/api/books/{book_id}").status_code == 401  # requiere PIN
+    assert client.delete(f"/api/books/{book_id}", headers=ADMIN).status_code == 204
     assert client.get(f"/api/books/{book_id}").status_code == 404
 
 

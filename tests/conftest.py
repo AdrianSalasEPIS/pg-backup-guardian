@@ -9,6 +9,8 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 TEST_URL = os.environ.get("TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/guardian_test")
 ADMIN_URL = make_conninfo(TEST_URL, dbname="postgres")
 os.environ["DATABASE_URL"] = TEST_URL
+os.environ["ADMIN_PIN"] = "2468"
+ADMIN = {"X-Admin-Pin": "2468"}
 
 
 @pytest.fixture(scope="session", autouse=True)

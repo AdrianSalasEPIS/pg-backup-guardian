@@ -15,3 +15,7 @@ services:
         value: 3.12.8
       - key: DATABASE_URL
         sync: false   # se pega en el panel de Render (cadena de conexión de Neon)
+      - key: ADMIN_PIN
+        sync: false   # protege desastre/restaurar/eliminar en el laboratorio
+      - key: GITHUB_TOKEN
+        sync: false   # opcional: PAT fine-grained (Actions: write) para el botón "Ejecutar respaldo"

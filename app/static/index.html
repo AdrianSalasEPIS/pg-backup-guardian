@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PG Backup Guardian</title>
+  <meta name="description" content="Respaldos de PostgreSQL que sí se pueden restaurar: laboratorio de recuperación en vivo.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="/">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7.4 5.1 13.4 12 15 6.9-1.6 12-7.6 12-15V7L16 2Z" fill="var(--accent)"/><path d="m10.5 16.2 3.7 3.7 7.5-7.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>PG Backup <b>Guardian</b></span>
+    </a>
+    <div class="chips" id="chips">
+      <span class="chip" id="chip-db"><i class="dot"></i>Conectando…</span>
+      <span class="chip hide-sm">PostgreSQL 17 · Neon</span>
+      <span class="chip hide-sm mono" id="chip-commit">—</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btn-admin" title="Modo administrador">🔒 <span class="hide-sm">Admin</span></button>
+      <button class="icon-btn" id="btn-theme" title="Cambiar tema">🌓</button>
+      <a class="icon-btn" id="lnk-repo" href="https://github.com/AdrianSalasEPIS/pg-backup-guardian" target="_blank" rel="noopener" title="Código fuente">
+        <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.5 15.6c.4 0 .5-.2.5-.4v-1.5c-2.2.5-2.7-1-2.7-1-.4-.9-.9-1.2-.9-1.2-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.3 1.9.9 2.4.7 0-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.5 7.5 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.4 1.1.2 1.9.1 2.1.5.6.8 1.3.8 2.1 0 3.1-1.9 3.8-3.6 4 .3.3.5.8.5 1.5v2.2c0 .2.1.5.6.4A8 8 0 0 0 8 0Z"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Base de Datos II · UPT · Estrategias de respaldo sin MS SQL Server</p>
+      <h1>Respaldos que <span class="grad">sí se pueden restaurar</span></h1>
+      <p class="lead">Esta app corre en la nube (Render + Neon) y no solo hace respaldos: los <b>verifica restaurándolos</b>,
+        te deja <b>provocar un desastre real</b> y <b>recuperarte en segundos</b>. Cada push se prueba y despliega solo con GitHub Actions.</p>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis">
+    <div class="kpi"><span class="kpi-label">📚 Libros</span><b id="k-books">—</b><small id="k-loans">— préstamos</small></div>
+    <div class="kpi" id="kpi-rpo"><span class="kpi-label">⏱️ RPO actual</span><b id="k-rpo">—</b><small>tiempo desde el último respaldo</small></div>
+    <div class="kpi"><span class="kpi-label">🛡️ Respaldos OK</span><b id="k-ok">—</b><small id="k-rate">— de éxito</small></div>
+    <div class="kpi"><span class="kpi-label">📦 Último completo</span><b id="k-full">—</b><small>pg_dump cifrado en GitHub</small></div>
+    <div class="kpi"><span class="kpi-label">⚡ Puntos de restauración</span><b id="k-snaps">—</b><small>se conservan los 10 últimos</small></div>
+  </section>
+
+  <div class="health" id="health" data-state="unknown">
+    <span class="health-icon" id="health-icon">…</span>
+    <div><b id="health-title">Comprobando integridad…</b><div id="health-detail" class="muted"></div></div>
+  </div>
+
+  <!-- LABORATORIO -->
+  <section class="card lab" id="lab">
+    <div class="card-head">
+      <div>
+        <h2>🧪 Laboratorio de recuperación</h2>
+        <p class="muted">Recorre el ciclo completo en vivo contra la base de producción. Los pasos 3 y 4 piden el PIN de administrador.</p>
+      </div>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-n">1</span>
+        <h3>Crear punto de restauración</h3>
+        <p>Copia cada tabla con <code>COPY</code>, la comprime en ZIP y guarda su huella (filas + md5 + SHA-256).</p>
+        <input id="snap-label" maxlength="80" placeholder="Etiqueta opcional (ej. antes de la migración)">
+        <button class="btn primary" id="btn-snap">⚡ Crear punto</button>
+      </li>
+      <li class="step">
+        <span class="step-n">2</span>
+        <h3>Verificar restaurando</h3>
+        <p>Restaura en un esquema temporal dentro de una transacción que se revierte y compara tabla por tabla.</p>
+        <button class="btn" id="btn-verify">✅ Verificar último punto</button>
+      </li>
+      <li class="step danger">
+        <span class="step-n">3</span>
+        <h3>Simular desastre</h3>
+        <p>Elige qué sale mal. Es real: los datos de producción se dañan.</p>
+        <select id="disaster-kind"></select>
+        <button class="btn danger" id="btn-disaster">💥 Provocar desastre</button>
+      </li>
+      <li class="step success">
+        <span class="step-n">4</span>
+        <h3>Restaurar</h3>
+        <p>Restauración atómica: si la huella final no coincide, se revierte todo y no queda a medias.</p>
+        <button class="btn success" id="btn-restore">♻️ Restaurar último punto</button>
+      </li>
+    </ol>
+    <div class="lab-out">
+      <div class="console" id="console" aria-live="polite">
+        <div class="console-bar"><i></i><i></i><i></i><span>guardian@neon — consola</span></div>
+        <div class="console-body" id="console-body"><p class="c-muted">› Listo. Elige un paso para comenzar.</p></div>
+      </div>
+      <div class="compare" id="compare">
+        <h3>Estado de las tablas</h3>
+        <table class="mini"><thead><tr><th>Tabla</th><th>Antes</th><th></th><th>Ahora</th></tr></thead><tbody id="compare-body"></tbody></table>
+        <p class="muted small" id="compare-note">Las cifras se miden en la base, no se estiman.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-head"><h2>⚡ Puntos de restauración</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Fecha</th><th>Filas</th><th>Tamaño</th><th>SHA-256</th><th>Verificado</th><th></th></tr></thead>
+        <tbody id="snap-body"><tr><td colspan="7" class="muted">Cargando…</td></tr></tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>🕒 Línea de tiempo</h2></div>
+      <ul class="timeline" id="timeline"><li class="muted">Cargando…</li></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <div><h2>🤖 GitHub Actions en vivo</h2><p class="muted">CI/CD en cada push y respaldo completo diario (pg_dump → restauración de prueba → AES-256 → copia externa).</p></div>
+      <div class="head-actions">
+        <button class="btn" id="btn-runs">↻ Actualizar</button>
+        <button class="btn primary" id="btn-dispatch">▶ Ejecutar respaldo completo</button>
+      </div>
+    </div>
+    <div class="runs" id="runs"><p class="muted">Cargando ejecuciones…</p></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>📈 Historial de respaldos</h2><p class="muted">Tamaño de cada respaldo exitoso. <span class="lg lg-full"></span> pg_dump completo · <span class="lg lg-snap"></span> punto de restauración</p></div></div>
+    <div id="chart" class="chart"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Restauración probada</th><th>Tamaño</th><th>SHA-256</th><th>Ubicación</th></tr></thead>
+      <tbody id="backup-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>🧭 Estrategias: qué protege y qué <u>no</u></h2><p class="muted">La columna roja es la que evita sorpresas después del incidente. Por eso se combinan capas.</p></div></div>
+    <div class="strategies" id="strategies"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <div><h2>📚 Biblioteca (datos de prueba)</h2><p class="muted">Agrega libros, crea un punto, provoca un desastre y comprueba que vuelven.</p></div>
+      <input id="book-search" class="search" placeholder="Buscar…">
+    </div>
+    <form class="book-form" id="book-form">
+      <input name="title" required maxlength="200" placeholder="Título">
+      <input name="author" required maxlength="200" placeholder="Autor">
+      <input name="year" type="number" min="0" max="2100" placeholder="Año">
+      <button class="btn primary" type="submit">＋ Agregar</button>
+    </form>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Título</th><th>Autor</th><th>Año</th><th></th></tr></thead>
+      <tbody id="book-body"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<footer class="wrap footer">
+  <div>
+    <b>PG Backup Guardian</b> · Adrian Fabricio Salas Acuña &amp; Keyla Noelia Lopez Ojeda ·
+    Escuela Profesional de Ingeniería de Sistemas — Universidad Privada de Tacna
+  </div>
+  <div class="footer-links">
+    <a href="/docs">API (Swagger)</a> · <a href="/health">/health</a> ·
+    <a href="https://github.com/AdrianSalasEPIS/pg-backup-guardian" target="_blank" rel="noopener">GitHub</a> ·
+    versión <code id="foot-commit">—</code>
+  </div>
+</footer>
+
+<dialog id="pin-dialog">
+  <form method="dialog" id="pin-form">
+    <h3>🔒 PIN de administrador</h3>
+    <p class="muted">Las acciones destructivas están protegidas para que nadie de internet borre los datos.</p>
+    <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" required>
+    <p class="err" id="pin-err"></p>
+    <div class="dialog-actions">
+      <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn primary" id="pin-ok" value="ok">Desbloquear</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts"></div>
+<script src="/static/app.js" type="module"></script>
+</body>
+</html>

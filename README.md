@@ -12,6 +12,21 @@ incrementales nativos de PostgreSQL 17.
 Proyecto del curso **Base de Datos II** — Escuela Profesional de Ingeniería de Sistemas, Universidad Privada de Tacna.
 Autores: **Adrian Fabricio Salas Acuña** y **Keyla Noelia Lopez Ojeda**.
 
+## 🧪 Laboratorio de recuperación (en vivo)
+
+La página principal no es solo un panel: permite recorrer el ciclo completo contra la base de producción.
+
+| Paso | Qué hace | Cómo se comprueba |
+|---|---|---|
+| ⚡ **Crear punto** | `COPY ... TO STDOUT` de cada tabla en una transacción `REPEATABLE READ`, ZIP con CSV + manifiesto | Filas + md5 del contenido por tabla + SHA-256 del ZIP |
+| ✅ **Verificar** | Restaura en un esquema temporal dentro de una transacción que **siempre se revierte** | Compara filas y md5 tabla por tabla |
+| 💥 **Simular desastre** | `DELETE` sin `WHERE`, datos corrompidos o `DROP TABLE` (requiere PIN) | El panel detecta la diferencia contra el último punto |
+| ♻️ **Restaurar** | `TRUNCATE` + `COPY FROM` + reajuste de secuencias, todo atómico (requiere PIN) | Si la huella final no coincide, se revierte y no queda a medias |
+
+Además: ejecuciones de **GitHub Actions en vivo**, indicador de **RPO actual**, gráfico de tamaños, línea de tiempo,
+descarga de cada punto como ZIP, tabla **"qué protege / qué NO protege"** de cada estrategia, modo oscuro y diseño
+responsive. Las acciones destructivas piden un **PIN de administrador** (con bloqueo tras 5 intentos fallidos).
+
 ## Arquitectura
 
 ```
@@ -48,7 +63,7 @@ $env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/guardian"
 $env:PG_BIN = "C:\Program Files\PostgreSQL\17\bin"
 psql -U postgres -c "CREATE DATABASE guardian"
 .\.venv\Scripts\uvicorn app.main:app --reload     # http://127.0.0.1:8000
-.\.venv\Scripts\pytest -v                          # 8 pruebas
+.\.venv\Scripts\pytest -v                          # 15 pruebas (API, backup/restore y laboratorio)
 ```
 
 Respaldo manual, verificación y retención:
@@ -84,5 +99,19 @@ Desde ahí, cada `git push` a `main` prueba, despliega y verifica la versión pu
 
 ## Endpoints
 
-`GET /` panel · `GET /health` · `GET /api/books` · `POST /api/books` · `DELETE /api/books/{id}` ·
-`GET /api/backups` · `GET /api/stats` · `GET /docs` (Swagger)
+| Ruta | Descripción |
+|---|---|
+| `GET /` | Panel + laboratorio de recuperación |
+| `GET /health` | Estado, latencia a la BD y commit desplegado |
+| `GET /api/stats` · `GET /api/backups` · `GET /api/events` | Indicadores, historial y línea de tiempo |
+| `GET/POST /api/snapshots` | Listar / crear puntos de restauración |
+| `POST /api/snapshots/{id}/verify` | Restauración de prueba con rollback |
+| `POST /api/snapshots/{id}/restore` 🔒 | Restauración atómica en producción |
+| `GET /api/snapshots/{id}/download` | Descargar el ZIP (CSV + manifiesto) |
+| `POST /api/disaster/{delete_all\|corrupt\|drop_table}` 🔒 | Simular un desastre |
+| `GET /api/github/runs` | Últimas ejecuciones de GitHub Actions |
+| `GET/POST/DELETE /api/books` | CRUD de la biblioteca (eliminar 🔒) |
+| `GET /api/strategies` | Qué protege y qué no cada estrategia |
+| `GET /docs` | Swagger |
+
+🔒 = requiere la cabecera `X-Admin-Pin` (variable `ADMIN_PIN` en Render).
