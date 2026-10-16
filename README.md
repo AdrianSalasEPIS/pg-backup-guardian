@@ -115,3 +115,8 @@ Desde ahí, cada `git push` a `main` prueba, despliega y verifica la versión pu
 | `GET /docs` | Swagger |
 
 🔒 = requiere la cabecera `X-Admin-Pin` (variable `ADMIN_PIN` en Render).
+
+Artículos del equipo
+Adrian Salas — Respaldos que sí se pueden restaurar: https://dev.to/adriansalasepis/respaldos-que-si-se-pueden-restaurar-estrategia-automatizada-para-postgresql-con-github-actions-3glj
+Keyla Lopez — Completo, incremental y PITR en PostgreSQL 17: https://dev.to/keylalopezz/completo-incremental-y-pitr-en-postgresql-17-guia-practica-con-restauracion-verificada-37pl
+
