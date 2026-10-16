@@ -10,7 +10,9 @@ cover_image: https://raw.githubusercontent.com/AdrianSalasEPIS/pg-backup-guardia
 >
 > 🔗 **Repositorio:** https://github.com/AdrianSalasEPIS/pg-backup-guardian
 > 🌐 **App publicada:** https://pg-backup-guardian.onrender.com
-> 🎥 **Video:** próximamente
+> 🎥 **Video:** https://youtu.be/hWiH6ANFUmQ
+
+{% embed https://www.youtube.com/watch?v=hWiH6ANFUmQ %}
 
 ---
 
@@ -163,7 +165,7 @@ Además, la app tiene un **laboratorio de recuperación** donde se puede provoca
 
 - 📦 **Repositorio:** https://github.com/AdrianSalasEPIS/pg-backup-guardian
 - 🌐 **App en la nube:** https://pg-backup-guardian.onrender.com
-- 🎥 **Video:** próximamente
+- 🎥 **Video:** https://youtu.be/hWiH6ANFUmQ
 - 📖 Artículo complementario de mi compañero Adrian Salas: *Respaldos que sí se pueden restaurar* — https://dev.to/adriansalasepis/respaldos-que-si-se-pueden-restaurar-estrategia-automatizada-para-postgresql-con-github-actions-3glj
 
 ## Referencias

@@ -9,7 +9,7 @@ incrementales nativos de PostgreSQL 17.
 
 🌐 **App en vivo:** https://pg-backup-guardian.onrender.com (plan gratuito: la primera carga tras inactividad tarda ~50 s)
 
-🎥 **Video de demostración (menos de 5 min):** próximamente en YouTube
+🎥 **Video de demostración (4:31):** https://youtu.be/hWiH6ANFUmQ
 
 Proyecto del curso **Base de Datos II** — Escuela Profesional de Ingeniería de Sistemas, Universidad Privada de Tacna.
 Autores: **Adrian Fabricio Salas Acuña** y **Keyla Noelia Lopez Ojeda**.
