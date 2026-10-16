@@ -1,0 +1,84 @@
+# CI/CD: cada push a main ejecuta las pruebas contra un PostgreSQL 17 real
+# y, si pasan, despliega en Render y comprueba que la nueva versión responde.
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guardian_test
+      PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar cliente PostgreSQL 17 (pg_dump / pg_restore)
+        run: |
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+          $PG_BIN/pg_dump --version
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Pruebas (API + backup/restore verificado)
+        run: pytest -v
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    steps:
+      - name: Disparar deploy en Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Falta el secreto RENDER_DEPLOY_HOOK_URL; se omite el deploy."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK"
+
+      - name: Smoke test de la versión publicada
+        if: vars.APP_URL != ''
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          # Render tarda unos minutos en construir; esperamos a que /health
+          # reporte el commit recién desplegado.
+          for i in $(seq 1 40); do
+            body=$(curl -fsS "$APP_URL/health" || true)
+            echo "intento $i: $body"
+            if echo "$body" | grep -q "$GITHUB_SHA" && echo "$body" | grep -q '"database":"up"'; then
+              echo "Deploy verificado: $APP_URL corre el commit $GITHUB_SHA"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::La nueva versión no respondió a tiempo"
+          exit 1

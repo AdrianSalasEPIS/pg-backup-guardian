@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PG Backup Guardian</title>
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#5d6678; --line:#dfe3ea;
+            --accent:#336791; --ok:#1f7a4d; --bad:#b42318; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#12151b; --card:#1b2029; --ink:#e7eaf0; --muted:#9aa3b5; --line:#2c3340;
+              --accent:#7aa7d6; --ok:#4cc38a; --bad:#f97066; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+           background:var(--bg); color:var(--ink); }
+    main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+    header h1 { margin:0; font-size: 1.6rem; }
+    header p { margin: 4px 0 0; color: var(--muted); }
+    .tiles { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap:12px; margin:20px 0; }
+    .tile { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+    .tile b { display:block; font-size:1.6rem; }
+    .tile span { color:var(--muted); font-size:.85rem; }
+    section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-top:16px; overflow-x:auto; }
+    h2 { margin:0 0 10px; font-size:1.1rem; }
+    table { width:100%; border-collapse:collapse; font-size:.9rem; }
+    th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+    th { color:var(--muted); font-weight:600; }
+    .ok { color:var(--ok); font-weight:600; } .failed { color:var(--bad); font-weight:600; }
+    code { font-size:.85em; }
+    footer { margin-top:24px; color:var(--muted); font-size:.85rem; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🛡️ PG Backup Guardian</h1>
+    <p>App de ejemplo (biblioteca) con respaldos automáticos de PostgreSQL: <code>pg_dump</code> cifrado,
+       restauración verificada y retención, orquestados con GitHub Actions.</p>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><b>{{ stats.books }}</b><span>libros</span></div>
+    <div class="tile"><b>{{ stats.loans }}</b><span>préstamos</span></div>
+    <div class="tile"><b>{{ stats.backups_ok }}</b><span>respaldos exitosos</span></div>
+    <div class="tile"><b>{{ stats.last_backup.strftime('%Y-%m-%d %H:%M') ~ ' UTC' if stats.last_backup else '—' }}</b><span>último respaldo</span></div>
+  </div>
+
+  <section>
+    <h2>Historial de respaldos</h2>
+    {% if backups %}
+    <table>
+      <tr><th>Fecha (UTC)</th><th>Tipo</th><th>Estado</th><th>Restauración probada</th><th>Tamaño</th><th>SHA-256</th><th>Ubicación</th></tr>
+      {% for b in backups %}
+      <tr>
+        <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ b.kind }}</td>
+        <td class="{{ b.status }}">{{ b.status }}</td>
+        <td>{{ '✅ sí' if b.verified else '—' }}</td>
+        <td>{{ '%.1f KB'|format(b.size_bytes / 1024) if b.size_bytes else '—' }}</td>
+        <td><code>{{ (b.sha256 or '')[:12] }}</code></td>
+        <td>{{ b.location or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p>Aún no hay respaldos registrados. El workflow <code>backup.yml</code> se ejecuta cada día.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Últimos libros</h2>
+    <table>
+      <tr><th>ID</th><th>Título</th><th>Autor</th><th>Año</th></tr>
+      {% for b in books %}
+      <tr><td>{{ b.id }}</td><td>{{ b.title }}</td><td>{{ b.author }}</td><td>{{ b.year or '' }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <footer>
+    API: <a href="/docs">/docs</a> · <a href="/health">/health</a> · <a href="/api/backups">/api/backups</a>
+    · versión <code>{{ commit }}</code>
+    · <a href="https://github.com/AdrianSalasEPIS/pg-backup-guardian">código fuente</a>
+    · Adrian Salas &amp; Keyla Lopez — UPT, Base de Datos II
+  </footer>
+</main>
+</body>
+</html>

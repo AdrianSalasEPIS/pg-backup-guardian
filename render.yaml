@@ -1,0 +1,17 @@
+# Blueprint de Render: crea el servicio web a partir de este repositorio.
+# El deploy lo dispara GitHub Actions (deploy hook) solo cuando las pruebas pasan.
+services:
+  - type: web
+    name: pg-backup-guardian
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATABASE_URL
+        sync: false   # se pega en el panel de Render (cadena de conexión de Neon)

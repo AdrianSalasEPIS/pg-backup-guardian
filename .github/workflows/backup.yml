@@ -1,0 +1,93 @@
+# Respaldo diario de la base de producción (Neon):
+#   1. pg_dump completo (formato custom) + manifiesto con SHA-256 y conteo de filas
+#   2. Restauración de prueba en un PostgreSQL desechable y comparación de filas
+#   3. Cifrado AES-256 con GPG (el repo es público: nunca subir dumps en claro)
+#   4. Copia fuera del proveedor de la BD (artefacto de GitHub, retención 30 días)
+#   5. Registro del resultado en la tabla backup_log (se ve en el panel de la app)
+name: Backup diario
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC = 01:00 hora de Perú
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    services:
+      restore-target:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Comprobar secretos
+        run: |
+          [ -n "$DATABASE_URL" ] || { echo "::error::Falta el secreto DATABASE_URL"; exit 1; }
+          [ -n "${{ secrets.BACKUP_PASSPHRASE }}" ] || { echo "::error::Falta el secreto BACKUP_PASSPHRASE"; exit 1; }
+
+      - name: Instalar cliente PostgreSQL 17
+        run: |
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - run: pip install "psycopg[binary]==3.3.6"
+
+      - name: 1. Crear respaldo completo
+        id: dump
+        run: python scripts/backup.py create --out-dir backups --github-output
+
+      - name: 2. Verificar restauración
+        run: >
+          python scripts/backup.py verify --file "${{ steps.dump.outputs.file }}"
+          --admin-url postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: 3. Cifrar con AES-256
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASSPHRASE" \
+              --symmetric --cipher-algo AES256 "${{ steps.dump.outputs.file }}"
+          rm "${{ steps.dump.outputs.file }}"
+          ls -lh backups/
+
+      - name: 4. Guardar copia externa (artefacto, 30 días)
+        id: upload
+        uses: actions/upload-artifact@v5
+        with:
+          name: pg-backup-${{ github.run_number }}
+          path: |
+            backups/*.gpg
+            backups/*.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 5a. Registrar éxito
+        run: >
+          python scripts/backup.py log --status ok --verified
+          --manifest "${{ steps.dump.outputs.manifest }}"
+          --location "GitHub artifact pg-backup-${{ github.run_number }} (AES-256)"
+          --details "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: 5b. Registrar fallo
+        if: failure()
+        run: >
+          python scripts/backup.py log --status failed
+          --details "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          || true
