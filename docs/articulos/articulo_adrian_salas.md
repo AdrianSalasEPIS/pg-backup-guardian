@@ -215,7 +215,7 @@ Para errores recientes (un `DELETE` accidental de hace 10 minutos), es más ráp
 - 📦 **Repositorio:** https://github.com/AdrianSalasEPIS/pg-backup-guardian
 - 🌐 **App en la nube:** https://pg-backup-guardian.onrender.com
 - 🎥 **Video:** próximamente
-- 📖 Artículo complementario de mi compañera Keyla López: *Completo, incremental y PITR en PostgreSQL 17* — próximamente
+- 📖 Artículo complementario de mi compañera Keyla López: *Completo, incremental y PITR en PostgreSQL 17* — https://dev.to/keylalopezz/completo-incremental-y-pitr-en-postgresql-17-guia-practica-con-restauracion-verificada-37pl
 
 ## Referencias
 
